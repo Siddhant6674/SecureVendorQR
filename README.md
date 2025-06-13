@@ -28,7 +28,8 @@ Fast2SMS / JSON Mode – Placeholder for SMS API integration
 
 MySQL – Vendor database
 
-Project Status
+Project Status:-
+
 ✅ OTP Generation and Redis Integration
 
 ✅ API for sending and verifying OTP
