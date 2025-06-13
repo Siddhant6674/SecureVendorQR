@@ -1,0 +1,16 @@
+CREATE TABLE IF NOT EXISTS vendor (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    FirstName VARCHAR(255) NOT NULL,
+    LastName VARCHAR(255) NOT NULL,
+    Phone VARCHAR(255) NOT NULL,
+    PanNO VARCHAR(255) NOT NULL,
+    AdharNo VARCHAR(255) NOT NULL,
+    GSTno VARCHAR(255) NOT NULL,
+    createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id),
+    UNIQUE KEY Phone_unique (Phone),
+    UNIQUE KEY PanNO_unique (PanNO),
+    UNIQUE KEY AdharNo_unique (AdharNo),
+    UNIQUE KEY GSTno_unique (GSTno)
+    );
