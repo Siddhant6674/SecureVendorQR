@@ -1,7 +1,9 @@
 #SecureVendorQR
+
 This project is a Go-based backend system for vendor registration and secure QR-based access using OTP (One-Time Password) verification. It is designed to securely verify vendor identity before granting access to their information via QR code.
 
-Features
+Features:-
+
 📝 Vendor Registration: Vendors can register using basic information.
 
 📤 QR Code Generation: A QR code is generated upon registration containing the vendor’s access link.
@@ -14,7 +16,8 @@ Features
 
 ⚙️ Modular Code Architecture: Separates concerns via handlers, utils, and types.
 
-Tech Stack
+Tech Stack:-
+
 Go (Golang) – Backend server
 
 Redis – Temporary OTP and status storage
