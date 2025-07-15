@@ -25,7 +25,8 @@ func Newhandler(store types.VendorStore) *Handler {
 func (h *Handler) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/vendorInfo/{phone}", h.handleVendorInfo).Methods("GET")
 	router.HandleFunc("/Register", h.handleRegister).Methods("POST")
-	router.HandleFunc("/verifyOtp", h.handleVerifyOTP).Methods("POST")
+	router.HandleFunc("/accessQR", h.handleAccessQR).Methods("POST")
+	router.HandleFunc("/accessinformation", h.handleAccessInformation).Methods("POST")
 }
 
 // Handler for registering vendor
@@ -106,7 +107,7 @@ func (h *Handler) handleVendorInfo(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (h *Handler) handleVerifyOTP(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) handleAccessQR(w http.ResponseWriter, r *http.Request) {
 	var req types.OTPrequest
 
 	if err := utils.ParseJSON(r, &req); err != nil {
@@ -132,4 +133,29 @@ func (h *Handler) handleVerifyOTP(w http.ResponseWriter, r *http.Request) {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
+}
+
+func (h *Handler) handleAccessInformation(w http.ResponseWriter, r *http.Request) {
+	var req types.OTPrequest
+
+	if err := utils.ParseJSON(r, &req); err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+	}
+
+	if !utils.ValidateOTP(req.Phone, req.OTP) {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid or expired otp"))
+		return
+	}
+
+	err := utils.MarkOTPVerified(req.Phone)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+	}
+
+	vendor, err := h.store.GetVendorByPhone(req.Phone)
+	if err != nil {
+		utils.WriteError(w, http.StatusNotFound, err)
+	}
+
+	utils.WriteJSON(w, http.StatusOK, vendor)
 }
