@@ -100,30 +100,64 @@ func StoreOTP(phone, OTP string) error {
 }
 
 // fucntion to send OTP
-func SendOTP(Phone string) error {
+func SendOTP(Phone string) (string, error) {
 	otp := GenerateOTP(6)
 
 	//Store otp in redis
 	StoreOTP(Phone, otp)
 
 	//Create message
-	message := fmt.Sprintf("Your OTP for QR code access is %s", otp)
-	fmt.Printf("DEBUG OTP for %s: %s\n", Phone, otp)
+	// message := fmt.Sprintf("Your OTP for QR code access is %s", otp)
+	// fmt.Printf("Your OTP for QR code access is : %s\n", otp)
 	//send via FastSMS
-	err := SendSMSFast2SMS(Phone, message)
-	if err != nil {
-		return fmt.Errorf("failed to send sms %v", err)
-	}
-	return nil
+	// err := SendSMSFast2SMS(Phone, message)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to send sms %v", err)
+	// }
+	return otp, nil
 }
 
 // ValidateOTP checks if the OTP is correct and hasn't expired
 func ValidateOTP(phone, otp string) bool {
 	storedOTP, err := rdb.Get(ctx, phone).Result()
 	if err != nil {
+		log.Printf("Error fetching OTP for phone %s: %v", phone, err)
 		return false // Return false if OTP not found or expired
 	}
+	log.Printf("Validating OTP: stored=%s, received=%s", storedOTP, otp)
 	return storedOTP == otp
+}
+
+func MarkOTPVerified(phone string) error {
+	return rdb.Set(ctx, "verified_"+phone, "true", 5*time.Minute).Err()
+}
+
+func IsOTPVerified(phone string) bool {
+	val, err := rdb.Get(ctx, "verified_"+phone).Result()
+	return err == nil && val == "true"
+}
+
+// function to serve QR code
+func ServeQRcode(w http.ResponseWriter, phone string) error {
+	// Check if OTP is verified
+	if !IsOTPVerified(phone) {
+		return fmt.Errorf("OTP not verified")
+	}
+
+	filepath := fmt.Sprintf("vendorQr/vendor_qr/%s_qrcode.png", phone)
+
+	file, err := os.Open(filepath)
+	if err != nil {
+		return fmt.Errorf("failed to open QR code file %v", err)
+	}
+	defer file.Close()
+
+	w.Header().Set("Content-Type", "image/png")
+	_, err = io.Copy(w, file)
+	if err != nil {
+		return fmt.Errorf("failed to write QR code in response %v", err)
+	}
+	return nil
 }
 
 // function to generate QR code

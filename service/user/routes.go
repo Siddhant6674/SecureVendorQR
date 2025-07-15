@@ -25,6 +25,7 @@ func Newhandler(store types.VendorStore) *Handler {
 func (h *Handler) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/vendorInfo/{phone}", h.handleVendorInfo).Methods("GET")
 	router.HandleFunc("/Register", h.handleRegister).Methods("POST")
+	router.HandleFunc("/verifyOtp", h.handleVerifyOTP).Methods("POST")
 }
 
 // Handler for registering vendor
@@ -96,7 +97,12 @@ func (h *Handler) handleVendorInfo(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	phone := vars["phone"]
 
-	utils.SendOTP(phone)
+	otp, err := utils.SendOTP(phone)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to generate otp"))
+		return
+	}
+	utils.WriteJSON(w, http.StatusOK, otp)
 
 }
 
@@ -109,7 +115,21 @@ func (h *Handler) handleVerifyOTP(w http.ResponseWriter, r *http.Request) {
 
 	if !utils.ValidateOTP(req.Phone, req.OTP) {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid or expired otp"))
+		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, map[string]string{"message": "OTP verified successfully"})
+	// Mark OTP as verified
+	err := utils.MarkOTPVerified(req.Phone)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	// utils.WriteJSON(w, http.StatusOK, map[string]string{"message": "OTP verified successfully"})
+
+	err = utils.ServeQRcode(w, req.Phone)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
