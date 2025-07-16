@@ -27,6 +27,7 @@ func (h *Handler) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/Register", h.handleRegister).Methods("POST")
 	router.HandleFunc("/accessQR", h.handleAccessQR).Methods("POST")
 	router.HandleFunc("/accessinformation", h.handleAccessInformation).Methods("POST")
+	router.HandleFunc("/recoverQR/{phone}", h.handleRecoverQR).Methods("GET")
 }
 
 // Handler for registering vendor
@@ -105,6 +106,18 @@ func (h *Handler) handleVendorInfo(w http.ResponseWriter, r *http.Request) {
 	}
 	utils.WriteJSON(w, http.StatusOK, otp)
 
+}
+
+func (h *Handler) handleRecoverQR(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	phone := vars["phone"]
+
+	otp, err := utils.SendOTP(phone)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to generate otp"))
+		return
+	}
+	utils.WriteJSON(w, http.StatusOK, otp)
 }
 
 func (h *Handler) handleAccessQR(w http.ResponseWriter, r *http.Request) {
