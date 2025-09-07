@@ -94,7 +94,8 @@ func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// function to handle the get request after scanning the QR
+// handler of get request which send otp in response for reteriving info by used of accessinformation handler
+// which is post request
 func (h *Handler) handleVendorInfo(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	phone := vars["phone"]
@@ -108,6 +109,8 @@ func (h *Handler) handleVendorInfo(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// endpoint of get req for on demand qrcode which send otp in response,
+// and otp used in endpoint accessQR which is post req
 func (h *Handler) handleRecoverQR(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	phone := vars["phone"]
@@ -120,6 +123,7 @@ func (h *Handler) handleRecoverQR(w http.ResponseWriter, r *http.Request) {
 	utils.WriteJSON(w, http.StatusOK, otp)
 }
 
+// endpoint of post request which validate the otp and handover the QR code on demand
 func (h *Handler) handleAccessQR(w http.ResponseWriter, r *http.Request) {
 	var req types.OTPrequest
 
@@ -148,6 +152,7 @@ func (h *Handler) handleAccessQR(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// endpoint of post req which validate otp and handover the vendor info
 func (h *Handler) handleAccessInformation(w http.ResponseWriter, r *http.Request) {
 	var req types.OTPrequest
 
