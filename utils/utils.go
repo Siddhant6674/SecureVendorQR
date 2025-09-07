@@ -105,15 +105,6 @@ func SendOTP(Phone string) (string, error) {
 
 	//Store otp in redis
 	StoreOTP(Phone, otp)
-
-	//Create message
-	// message := fmt.Sprintf("Your OTP for QR code access is %s", otp)
-	// fmt.Printf("Your OTP for QR code access is : %s\n", otp)
-	//send via FastSMS
-	// err := SendSMSFast2SMS(Phone, message)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to send sms %v", err)
-	// }
 	return otp, nil
 }
 
