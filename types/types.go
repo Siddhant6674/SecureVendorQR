@@ -5,6 +5,7 @@ import "time"
 type VendorStore interface {
 	GetVendorByPhone(phone string) (*Vendor, error)
 	CreateVendor(Vendor) error
+	GetVendorByID(ID int) (*Vendor, error)
 }
 type Vendor struct {
 	ID        int       `json:"id"`
@@ -14,6 +15,7 @@ type Vendor struct {
 	PanNO     string    `json:"panNO"`
 	AdharNo   string    `json:"adharNo"`
 	GSTno     string    `json:"gstNo"`
+	Password  string    `json:"password`
 	CreatedAt time.Time `json:"createdAt"`
 }
 
@@ -24,6 +26,12 @@ type RegisterVendorPayload struct {
 	PanNO     string `json:"panNO" validate:"required,len=10,alphanum"`
 	AdharNo   string `json:"adharNo" validate:"required,len=12,numeric"`
 	GSTno     string `json:"gstNo" validate:"required"`
+	Password  string `json:"password" validate:"required,min=8,max=16"`
+}
+
+type LoginUserPayload struct {
+	Phone    string `json:"phone" validate:"required,len=10,numeric"`
+	Password string `json:"password" validate:"required,min=8,max=16"`
 }
 
 type OTPrequest struct {

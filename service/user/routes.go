@@ -7,6 +7,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Siddhant6674/vendorQr/config"
+	"github.com/Siddhant6674/vendorQr/service/auth"
 	"github.com/Siddhant6674/vendorQr/types"
 	"github.com/Siddhant6674/vendorQr/utils"
 	"github.com/go-playground/validator/v10"
@@ -23,11 +25,48 @@ func Newhandler(store types.VendorStore) *Handler {
 
 // All register routes with its method
 func (h *Handler) RegisterRoutes(router *mux.Router) {
+	router.HandleFunc("/login", h.handleLogin).Methods("POST")
 	router.HandleFunc("/vendorInfo/{phone}", h.handleVendorInfo).Methods("GET")
-	router.HandleFunc("/Register", h.handleRegister).Methods("POST")
-	router.HandleFunc("/accessQR", h.handleAccessQR).Methods("POST")
-	router.HandleFunc("/accessinformation", h.handleAccessInformation).Methods("POST")
-	router.HandleFunc("/recoverQR/{phone}", h.handleRecoverQR).Methods("GET")
+	router.HandleFunc("/Register", (h.handleRegister)).Methods("POST")
+	router.HandleFunc("/accessQR", auth.WithJWT(h.handleAccessQR, h.store)).Methods("POST")
+	router.HandleFunc("/accessinformation", auth.WithJWT(h.handleAccessInformation, h.store)).Methods("POST")
+	router.HandleFunc("/recoverQR/{phone}", auth.WithJWT(h.handleRecoverQR, h.store)).Methods("GET")
+}
+
+func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
+	var payload types.LoginUserPayload
+
+	//get user payload
+	if err := utils.ParseJSON(r, &payload); err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+	}
+
+	//validate user paylaod
+	if err := utils.Validate.Struct(payload); err != nil {
+		errors := err.(validator.ValidationErrors)
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid payload %v", errors))
+		return
+	}
+
+	//check user exist or not
+	u, err := h.store.GetVendorByPhone(payload.Phone)
+	if err != nil {
+		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("not found, invalid phone number or password"))
+	}
+
+	//compared password
+	if !auth.ComparedPasswords(u.Password, []byte(payload.Password)) {
+		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("invalid phone number or password"))
+		return
+	}
+
+	//create JWT token
+	secret := []byte(config.Envs.JWTSecret)
+	token, err := auth.CreateJWT(secret, u.ID)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+	}
+	utils.WriteJSON(w, http.StatusOK, map[string]string{"Token": token})
 }
 
 // Handler for registering vendor
@@ -53,6 +92,11 @@ func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("user with phone %s is already exist", Payload.Phone))
 	}
 
+	hashedPassword, err := auth.HashPassword(Payload.Password)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+	}
+
 	//if vendor doesn't then we register it
 	err = h.store.CreateVendor(types.Vendor{
 		FirstName: Payload.FirstName,
@@ -61,6 +105,7 @@ func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
 		PanNO:     Payload.PanNO,
 		AdharNo:   Payload.AdharNo,
 		GSTno:     Payload.GSTno,
+		Password:  hashedPassword,
 	})
 	// Try to create vendor in DB
 	if err != nil {

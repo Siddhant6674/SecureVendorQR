@@ -29,6 +29,7 @@ func scanRowsIntoVendor(rows *sql.Rows) (*types.Vendor, error) {
 		&vendor.AdharNo,
 		&vendor.GSTno,
 		&vendor.CreatedAt,
+		&vendor.Password,
 	)
 	if err != nil {
 		return nil, err
@@ -68,16 +69,37 @@ func (s *store) GetVendorByPhone(phone string) (*types.Vendor, error) {
 // resgistering vendor to database
 
 func (s *store) CreateVendor(vendor types.Vendor) error {
-	_, err := s.db.Exec("INSERT INTO vendor(firstname,lastname,phone,panNo,adharNo,gstNo)VALUES(?,?,?,?,?,?)",
+	_, err := s.db.Exec("INSERT INTO vendor(firstname,lastname,phone,panNo,adharNo,gstNo,password)VALUES(?,?,?,?,?,?,?)",
 		vendor.FirstName,
 		vendor.LastName,
 		vendor.Phone,
 		vendor.PanNO,
 		vendor.AdharNo,
-		vendor.GSTno)
+		vendor.GSTno,
+		vendor.Password)
 	if err != nil {
 		log.Println("Insert error:", err)
 		return err
 	}
 	return nil
+}
+
+func (s *store) GetVendorByID(ID int) (*types.Vendor, error) {
+	rows, err := s.db.Query("SELECT * FROM vendor WHERE ID=?", ID)
+	if err != nil {
+		return nil, err
+	}
+
+	u := new(types.Vendor)
+	for rows.Next() {
+		u, err = scanRowsIntoVendor(rows)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if u.ID == 0 {
+		return nil, fmt.Errorf("user not found")
+	}
+	return u, nil
 }
